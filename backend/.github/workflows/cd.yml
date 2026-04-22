@@ -2,32 +2,34 @@ name: CD Deployment
 
 on:
   push:
-    branches: [ "main", "master" ] 
+    branches: [ "main" ] # Recommended to stick to one branch for production
 
 jobs:
   deploy:
-    
     runs-on: ubuntu-latest
-    
     steps:
       - name: Deploy to DigitalOcean via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3 # Use a versioned tag for stability
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }} # Required if your key is encrypted
           script: |
+            cd /home/safa/somagom || exit
             
-            cd /home/safa/somagom 
-            
-            
+            # 1. Pull the latest code
             git pull origin main
             
-    
+            # 2. Shut down cleanly to avoid those "port in use" or "name conflict" errors
+            docker-compose down
+            
+            # 3. Build and start (using --build ensures your Python/React changes are picked up)
             docker-compose up --build -d
             
-    
+            # 4. Database & Static Files
             docker-compose exec -T web python manage.py migrate --noinput
-            
-            
             docker-compose exec -T web python manage.py collectstatic --noinput
+            
+            # 5. Cleanup unused images to save disk space on your droplet
+            docker image prune -f
