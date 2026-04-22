@@ -80,7 +80,7 @@ ALLOWED_HOSTS = [
     'www.somagoam.com',
     'your-ngrok-url.ngrok-free.dev',
     'https://somagoam-database-dlilb.ondigitalocean.app/api',
-    'ondigitalocean.app',
+    '.ondigitalocean.app',
 ]
 
 
