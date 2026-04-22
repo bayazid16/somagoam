@@ -80,7 +80,7 @@ ALLOWED_HOSTS = [
     'www.somagoam.com',
     'your-ngrok-url.ngrok-free.dev',
     'https://somagoam-database-dlilb.ondigitalocean.app/api',
-    'https://somagoam-database-dlilb.ondigitalocean.app/'
+    'ondigitalocean.com',
 ]
 
 
@@ -171,7 +171,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
     "https://www.somagoam.com",
-    "https://somagoam-database-dlilb.ondigitalocean.app/"
+    "https://somagoam-database-dlilb.ondigitalocean.app/",
 
 ]
 
@@ -180,7 +180,9 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost:8000',
                         'http://localhost:3000', 
                         'http://localhost:5173',''
                         'https://www.somagoam.com',
-                        'https://somagoam-database-dlilb.ondigitalocean.app/']
+                        'https://somagoam-database-dlilb.ondigitalocean.app/'
+
+]
 
 
 # redirects user to your React frontend after email verification
