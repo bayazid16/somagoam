@@ -1,0 +1,61 @@
+name: CI Test Run
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bayazid
+          POSTGRES_PASSWORD: bossboss
+          POSTGRES_DB: ecommerce_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U bayazid"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip' # Speeds up future runs
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Django Test Suite
+        env:
+          DATABASE_URL: postgres://bayazid:bossboss@localhost:5432/ecommerce_test_db
+          REDIS_URL: redis://localhost:6379/0
+          DEBUG: False
+        run: |
+          # Django 'test' creates its own DB, but migrate ensures the schema is ready
+          python manage.py migrate --noinput
+          python manage.py test

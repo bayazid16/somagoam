@@ -1,0 +1,79 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const ProductPage = () => {
+    const [products, setProducts] = useState([]);
+    const [search, setSearch] = useState(''); // সার্চের জন্য স্টেট
+    const [category, setCategory] = useState(''); // ক্যাটাগরির জন্য স্টেট
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            // URL-এ search এবং category দুটোই পাঠানো হচ্ছে
+            const url = `http://127.0.0.1:8000/api/products/?search=${search}&category=${category}&page=${page}`;
+            const res = await axios.get(url);
+            setProducts(res.data.results);
+        };
+        
+        // ইউজার টাইপ করার সাথে সাথে যেন রিকোয়েস্ট না যায়, তাই কিছুটা সময় (Debounce) দেয়া ভালো
+        const timeoutId = setTimeout(() => fetchData(), 500);
+        return () => clearTimeout(timeoutId);
+
+    }, [search, category, page]); // এই তিনটি চেঞ্জ হলেই ডাটা লোড হবে
+
+    return (
+        <div style={{ padding: '20px' }}>
+            <h2>E-commerce Search & Filter</h2>
+            
+            {/* সার্চ বার */}
+            <input 
+                type="text" 
+                placeholder="Search products..." 
+                onChange={(e) => setSearch(e.target.value)} 
+            />
+
+            {/* ক্যাটাগরি ড্রপডাউন */}
+            <select onChange={(e) => setCategory(e.target.value)}>
+                <option value="">All Categories</option>
+                <option value="1">Electronics</option> {/* এখানে ক্যাটাগরি ID হবে */}
+                <option value="2">Fashion</option>
+            </select>
+
+            <div className="product-list">
+                {products.map(p => (
+                    <div key={p.id}>
+                        <h4>{p.name}</h4>
+                        <p>${p.price}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
+
+
+import logging
+
+# লগার সেটআপ
+logger = logging.getLogger(__name__)
+
+class CheckOut(APIView):
+    def post(self, request):
+        try:
+            # আপনার কোড...
+            logger.info(f"User {request.user.email} successfully placed an order.")
+        except Exception as e:
+            # এটি অটোমেটিক 'logs/django_error.log' ফাইলে সেভ হবে
+            logger.error(f"Order failed for user {request.user.email}: {str(e)}")
+            return Response({"error": "Something went wrong"}, status=500)
+
+
+
+
+#search 
+const handleSearch = async (query) => {
+  const response = await axios.get(`http://localhost:8000/api/products/?search=${query}`);
+  setProducts(response.data);
+};

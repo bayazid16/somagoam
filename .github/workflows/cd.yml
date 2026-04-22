@@ -1,0 +1,33 @@
+name: CD Deployment
+
+on:
+  push:
+    branches: [ "main", "master" ] 
+
+jobs:
+  deploy:
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to DigitalOcean via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            
+            cd /home/safa/somagom 
+            
+            
+            git pull origin main
+            
+    
+            docker-compose up --build -d
+            
+    
+            docker-compose exec -T web python manage.py migrate --noinput
+            
+            
+            docker-compose exec -T web python manage.py collectstatic --noinput

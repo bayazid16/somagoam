@@ -1,0 +1,6 @@
+Collecting typed-ast
+  Downloading typed_ast-1.5.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (1.7 kB)
+Downloading typed_ast-1.5.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (824 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 824.7/824.7 kB 566.0 kB/s  0:00:01
+Installing collected packages: typed-ast
+Successfully installed typed-ast-1.5.5
