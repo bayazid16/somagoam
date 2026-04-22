@@ -108,4 +108,3 @@ zope.event==6.1
 zope.interface==8.2
 python-dotenv==1.0.0
 dj-database-url==2.1.0
-psycopg2-binary==2.9.9
