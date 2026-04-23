@@ -172,7 +172,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     'https://somagoam.com',
     "https://www.somagoam.com",
-    "https://somagoam-database-dlilb.ondigitalocean.app/",
+    "https://somagoam-database-dlilb.ondigitalocean.app",
 
 ]
 
@@ -182,7 +182,7 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost:8000',
                         'http://localhost:5173',
                         'https://somagoam.com',
                         'https://www.somagoam.com',
-                        'https://somagoam-database-dlilb.ondigitalocean.app/'
+                        'https://somagoam-database-dlilb.ondigitalocean.app'
 
 ]
 
@@ -363,13 +363,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL='users.User'
 
-
+# Celery Settings
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/0')
 
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {
@@ -382,6 +383,17 @@ CACHES = {
 }
 
 CACHE_TTL = 60 * 15
+
+
+#celery settings
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TASK_ACKS_LATE = True        # only mark task done after success
+CELERY_TASK_REJECT_ON_WORKER_LOST = True  # re-queue if worker crashes
+
 
 
 
@@ -427,13 +439,7 @@ CELERY_EMAIL_TASK_CONFIG = {
 }
 
 
-# Celery Settings
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_TASK_ACKS_LATE = True        # only mark task done after success
-CELERY_TASK_REJECT_ON_WORKER_LOST = True  # re-queue if worker crashes
+
 
 # Email Settings (Gmail Example)
 #  prints email to terminal instead of sending — perfect for developm
