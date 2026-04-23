@@ -188,11 +188,12 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost:8000',
 
 
 # redirects user to your React frontend after email verification
-ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'http://localhost:3000/login'
-ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = 'http://localhost:3000/login'
-LOGIN_REDIRECT_URL = 'http://localhost:3000/social-callback'
-LOGIN_URL = 'http://localhost:3000/login'
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = f'{FRONTEND_URL}/login'
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = f'{FRONTEND_URL}/login'
+LOGIN_REDIRECT_URL = f'{FRONTEND_URL}/social-callback'
+LOGIN_URL = f'{FRONTEND_URL}/login'
 
 
 
@@ -471,13 +472,13 @@ CORS_ALLOW_CREDENTIALS = True # allow cookies/session/JWT
   
 #SECURE Cookies and https
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True # redirect all HTTP to HTTPS 
-    SECURE_HSTS_SECONDS = 31536000  # protect ssl stripping attack  
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = False # redirect all HTTP to HTTPS 
+    # SECURE_HSTS_SECONDS = 31536000  # protect ssl stripping attack  
+    # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # SECURE_HSTS_PRELOAD = True
 
-    SESSION_COOKIE_SECURE = True # only over HTTPS
-    CSRF_COOKIE_SECURE = True      # only over HTTPS
+    SESSION_COOKIE_SECURE = False # only over HTTPS
+    CSRF_COOKIE_SECURE = False     # only over HTTPS
 
 else:
     SECURE_SSL_REDIRECT = False
