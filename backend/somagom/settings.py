@@ -77,9 +77,9 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    'somagoam.com',
     'www.somagoam.com',
     'your-ngrok-url.ngrok-free.dev',
-    'https://somagoam-database-dlilb.ondigitalocean.app/api',
     '.ondigitalocean.app',
 ]
 
@@ -170,6 +170,7 @@ WSGI_APPLICATION = 'somagom.wsgi.application'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
+    'https://somagoam.com',
     "https://www.somagoam.com",
     "https://somagoam-database-dlilb.ondigitalocean.app/",
 
@@ -178,7 +179,8 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 
                         'http://127.0.0.1:8000', 
                         'http://localhost:3000', 
-                        'http://localhost:5173',''
+                        'http://localhost:5173',
+                        'https://somagoam.com',
                         'https://www.somagoam.com',
                         'https://somagoam-database-dlilb.ondigitalocean.app/'
 
