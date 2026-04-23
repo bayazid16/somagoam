@@ -18,8 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 
+RUN chmod +x /app/entrypoint.sh
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3","--timeout", "120", "somagom.wsgi:application"]
+CMD ["/app/entrypoint.sh"]
 
 
 EXPOSE 8000
