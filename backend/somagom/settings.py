@@ -423,9 +423,7 @@ ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
 #dj-rest-auth registration serializer
 
 
-#media
-MEDIA_URL='/media/'
-MEDIA_ROOT=os.path.join(BASE_DIR,'media')
+
 
 
 #sslcommerz
@@ -488,6 +486,7 @@ CORS_ALLOW_CREDENTIALS = True # allow cookies/session/JWT
 #SECURE Cookies and https
 if not DEBUG:
     SECURE_SSL_REDIRECT = False # redirect all HTTP to HTTPS 
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_HSTS_SECONDS = 31536000  # protect ssl stripping attack  
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
