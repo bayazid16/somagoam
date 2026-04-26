@@ -359,9 +359,10 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
@@ -491,8 +492,8 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-    SESSION_COOKIE_SECURE = False # only over HTTPS
-    CSRF_COOKIE_SECURE = False     # only over HTTPS
+    SESSION_COOKIE_SECURE = True     # only over HTTPS
+    CSRF_COOKIE_SECURE = True     # only over HTTPS
 
 else:
     SECURE_SSL_REDIRECT = False
