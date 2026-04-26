@@ -28,7 +28,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('admin_tools_stats/', include('admin_tools_stats.urls')),#new
     path('api/auth/',include('dj_rest_auth.urls')),#login,registration,profile
-    path("accounts/", include("allauth.urls")),#new
+    path("api/accounts/", include("allauth.urls")),#new
     path('api/auth/registration/',include('dj_rest_auth.registration.urls')),
 
     #local apps

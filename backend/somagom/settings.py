@@ -307,9 +307,13 @@ DATABASES = {
 
 
 
-db_from_env = dj_database_url.config(conn_max_age=600)
+
+
+
+db_from_env = dj_database_url.config(conn_max_age=600,ssl_require=True)
 if db_from_env:
     DATABASES['default'].update(db_from_env)
+    DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 
 
 # Password validation
@@ -479,9 +483,9 @@ CORS_ALLOW_CREDENTIALS = True # allow cookies/session/JWT
 #SECURE Cookies and https
 if not DEBUG:
     SECURE_SSL_REDIRECT = False # redirect all HTTP to HTTPS 
-    # SECURE_HSTS_SECONDS = 31536000  # protect ssl stripping attack  
-    # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    # SECURE_HSTS_PRELOAD = True
+    SECURE_HSTS_SECONDS = 31536000  # protect ssl stripping attack  
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
     SESSION_COOKIE_SECURE = False # only over HTTPS
     CSRF_COOKIE_SECURE = False     # only over HTTPS
