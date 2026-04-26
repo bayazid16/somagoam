@@ -87,9 +87,9 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'admin_tools_stats',#new
-    'django_nvd3',#new
-    'jazzmin',#new
+    # 'admin_tools_stats',#new
+    # 'django_nvd3',#new
+    # 'jazzmin',#new
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

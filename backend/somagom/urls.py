@@ -26,7 +26,7 @@ from .views import LogoutView
 
 urlpatterns = [
     path('api/admin/', admin.site.urls),
-    path('api/admin_tools_stats/', include('admin_tools_stats.urls')),#new
+    # path('api/admin_tools_stats/', include('admin_tools_stats.urls')),#new
     path('api/auth/',include('dj_rest_auth.urls')),#login,registration,profile
     path("api/accounts/", include("allauth.urls")),#new
     path('api/auth/registration/',include('dj_rest_auth.registration.urls')),
