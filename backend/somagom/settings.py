@@ -352,18 +352,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 
-
-
-
-
-
-
-# STORAGES = {
-#     "staticfiles": {
-#         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-#     },
-# }
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
@@ -519,10 +507,11 @@ SITE_ID = 1
 # # media file URL
 # MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 if DEBUG:
     STATIC_URL = '/static/'
-    STATIC_ROOT = BASE_DIR / 'staticfiles'
     STATICFILES_DIRS = [
          BASE_DIR / "static",
         ]
