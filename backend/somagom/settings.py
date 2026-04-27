@@ -507,7 +507,7 @@ SITE_ID = 1
 # # media file URL
 # MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # if DEBUG:
