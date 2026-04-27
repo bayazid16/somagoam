@@ -525,7 +525,7 @@ AWS_S3_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_S3_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = 'sgp1'
-AWS_S3_ENDPOINT_URL = f'https://sgp1.digitaloceanspaces.com' 
+AWS_S3_ENDPOINT_URL ='https://sgp1.digitaloceanspaces.com' 
 # AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.sgp1.digitaloceanspaces.com'
 
 AWS_S3_CUSTOM_DOMAIN = os.getenv(
