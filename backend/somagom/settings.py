@@ -539,14 +539,14 @@ AWS_S3_ADDRESSING_STYLE = "virtual"
 AWS_DEFAULT_ACL = 'public-read'
 
 
-
-
-
-# Media
-DEFAULT_FILE_STORAGE = "payment.storage_backends.MediaStorage"
-
-# Static
-STATICFILES_STORAGE = "payment.storage_backends.StaticStorage"
+STORAGES = {
+    "default": {
+        "BACKEND": "payment.storage_backends.MediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "payment.storage_backends.StaticStorage",
+    },
+}
 
 STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
