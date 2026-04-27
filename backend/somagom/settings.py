@@ -507,7 +507,7 @@ SITE_ID = 1
 # # media file URL
 # MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 
 # if DEBUG:
@@ -521,8 +521,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 #     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # else:
     
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_S3_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_S3_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = 'sgp1'
 AWS_S3_ENDPOINT_URL = f'https://sgp1.digitaloceanspaces.com' 
@@ -550,6 +550,9 @@ STATICFILES_STORAGE = "payment.storage_backends.StaticStorage"
 
 STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
 
