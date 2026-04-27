@@ -402,12 +402,12 @@ CELERY_TASK_REJECT_ON_WORKER_LOST = True  # re-queue if worker crashes
 
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_ADAPTER = 'users.adapter.CustomAccountAdapter'
 # ACCOUNT_USERNAME_REQUIRED=False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
 
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
 #dj-rest-auth registration serializer
 
 
@@ -546,7 +546,7 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "payment.storage_backends.StaticStorage",
     },
-}
+} 
 
 STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
