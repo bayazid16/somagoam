@@ -526,7 +526,11 @@ else:
     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_ENDPOINT_URL = f'https://sgp1.digitaloceanspaces.com' 
     # AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.sgp1.digitaloceanspaces.com'
-    AWS_S3_CUSTOM_DOMAIN = os.getenv("DO_SPACES_CDN")
+
+    AWS_S3_CUSTOM_DOMAIN = os.getenv(
+    "DO_SPACES_CDN",
+    f"{AWS_STORAGE_BUCKET_NAME}.sgp1.digitaloceanspaces.com"
+)
     
     AWS_S3_FILE_OVERWRITE = False
     AWS_QUERYSTRING_AUTH = False
