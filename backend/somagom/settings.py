@@ -408,6 +408,10 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
 
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+
+# HTML email settings for allauth
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
+ACCOUNT_EMAIL_CONTENT_SUBTYPE = 'html'
 #dj-rest-auth registration serializer
 
 
