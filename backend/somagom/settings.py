@@ -410,7 +410,6 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 # HTML email settings for allauth
-ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
 ACCOUNT_EMAIL_CONTENT_SUBTYPE = 'html'
 #dj-rest-auth registration serializer
 
@@ -514,46 +513,46 @@ SITE_ID = 1
 
 
 
-# if DEBUG:
-#     STATIC_URL = '/static/'
-#     STATICFILES_DIRS = [
-#          BASE_DIR / "static",
-#         ]
+if DEBUG:
+    STATIC_URL = '/static/'
+    STATICFILES_DIRS = [
+         BASE_DIR / "static",
+        ]
 
     
-#     MEDIA_URL = '/media/'
-#     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+else:
     
-AWS_S3_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_S3_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = 'sgp1'
-AWS_S3_ENDPOINT_URL = 'https://sgp1.digitaloceanspaces.com'
-# AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.sgp1.digitaloceanspaces.com'
+    AWS_S3_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_S3_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = 'sgp1'
+    AWS_S3_ENDPOINT_URL = 'https://sgp1.digitaloceanspaces.com'
+    # AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.sgp1.digitaloceanspaces.com'
 
-AWS_S3_CUSTOM_DOMAIN = os.getenv(
-"DO_SPACES_CDN",
-f"{AWS_STORAGE_BUCKET_NAME}.sgp1.digitaloceanspaces.com"
-    )
+    AWS_S3_CUSTOM_DOMAIN = os.getenv(
+    "DO_SPACES_CDN",
+    f"{AWS_STORAGE_BUCKET_NAME}.sgp1.digitaloceanspaces.com"
+        )
 
-AWS_S3_FILE_OVERWRITE = False
-AWS_QUERYSTRING_AUTH = False
-AWS_S3_ADDRESSING_STYLE = "virtual"
-AWS_DEFAULT_ACL = 'public-read'
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_ADDRESSING_STYLE = "virtual"
+    AWS_DEFAULT_ACL = 'public-read'
 
 
-STORAGES = {
-    "default": {
-        "BACKEND": "payment.storage_backends.MediaStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "payment.storage_backends.StaticStorage",
-    },
-} 
+    STORAGES = {
+        "default": {
+            "BACKEND": "payment.storage_backends.MediaStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "payment.storage_backends.StaticStorage",
+        },
+    } 
 
-STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
-MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
