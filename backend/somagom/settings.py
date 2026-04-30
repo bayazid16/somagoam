@@ -255,7 +255,7 @@ REST_FRAMEWORK={
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '70/minute',  
+        'anon': '35/minute',  
         'user': '100/minute',
         'payment_init': '5/minute',
         'dj_rest_auth': '20/minute',#dj_rest_auth
