@@ -17,12 +17,11 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
-from order.views import OrderHistoryListView
-from users.views import UserProfileView
 from dj_rest_auth.registration.views import VerifyEmailView
 from allauth.account.views import ConfirmEmailView  
 from django.urls import path, re_path
 from .views import LogoutView
+from users.views import facebook_data_deletion
 
 urlpatterns = [
     path('api/admin/', admin.site.urls),
@@ -38,6 +37,8 @@ urlpatterns = [
     path('api/profile/', include('users.urls')),
     path('api/reviews/', include('reviews.urls')),
     path('api/orders/', include('order.urls')),
+
+    path('api/facebook/data-deletion/', facebook_data_deletion),
 
 
 
