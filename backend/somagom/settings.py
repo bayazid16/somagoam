@@ -488,7 +488,7 @@ if not DEBUG:
 else:
     SECURE_SSL_REDIRECT = False
 
-SITE_ID = 1
+SITE_ID = 2
 
 
 
