@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Georgia, serif; background: #f9f7f2; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: white; border: 1px solid #e0c8c4; }
+    .header { background: #A33B26; padding: 30px; text-align: center; }
+    .header h1 { color: white; margin: 0; font-size: 28px; }
+    .header p { color: #f5d5cf; margin: 5px 0 0; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; }
+    .body { padding: 40px; }
+    .body h2 { color: #333; font-size: 22px; margin-bottom: 20px; }
+    .body p { color: #666; line-height: 1.8; font-size: 14px; }
+    .btn { display: block; width: fit-content; margin: 30px auto; background: #A33B26; color: white !important; padding: 14px 40px; text-decoration: none; font-size: 12px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+    .footer { background: #f9f7f2; padding: 20px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #e0c8c4; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Somagoam</h1>
+      <p>Bangladesh's Heritage Marketplace</p>
+    </div>
+
+    <div class="body">
+      <h2>Welcome, {{ user.first_name|default:user.username }}!</h2>
+      <p>Thank you for joining Somagoam — where authentic Bengali heritage meets the modern world.</p>
+      <p>Please verify your email address to activate your account and start exploring our collection of GI-certified heritage products.</p>
+
+      <a href="{{ activate_url }}" class="btn">Verify My Account</a>
+
+      <p style="font-size: 12px; color: #999;">
+        Or copy this link into your browser:<br>
+        <span style="color: #A33B26;">{{ activate_url }}</span>
+      </p>
+
+      <p style="font-size: 12px; color: #999; margin-top: 30px;">
+        This link expires in <strong>3 days</strong>. If you did not create this account, please ignore this email.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>© 2026 Somagoam. All rights reserved.</p>
+      <p>Preserving Bangladesh's Heritage, One Product at a Time.</p>
+    </div>
+  </div>
+</body>
+</html>

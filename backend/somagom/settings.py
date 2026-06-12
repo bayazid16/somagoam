@@ -125,6 +125,7 @@ INSTALLED_APPS = [
     'payment',
     'cart',
     'reviews',
+    'sellers',
 ]
 
 MIDDLEWARE = [
@@ -556,6 +557,18 @@ else:
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+BKASH_SANDBOX    = True
+BKASH_APP_KEY    = "4f6o0cjiki2rfm34kfdadl1eqq"
+BKASH_APP_SECRET = "2is7hdktrekvrbljjh44ll3d9l1dtjo4pasmjvs5vl5qr3fug4b"
+BKASH_USERNAME   = "sandboxTokenizedUser02"
+BKASH_PASSWORD   = "sandboxTokenizedUser02@12345"
+ 
+# ── Redirect URLs (your React app) ─────────────────────────────────────────
+BKASH_SUCCESS_URL = "http://127.0.0.1:8000/payment/success"
+BKASH_FAILURE_URL = "https://yoursite.com/payment/failed"
+ 
 
 
 

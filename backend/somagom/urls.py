@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/profile/', include('users.urls')),
     path('api/reviews/', include('reviews.urls')),
     path('api/orders/', include('order.urls')),
+    path('api/sellers/', include('sellers.urls')),  
 
     path('api/facebook/data-deletion/', facebook_data_deletion),
 

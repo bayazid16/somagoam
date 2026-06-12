@@ -1,124 +1,277 @@
-import os
-from django.views.decorators.csrf import csrf_exempt
-import uuid
+"""
+views.py  –  bKash payment views (DRF-based).
+
+URL patterns to add in urls.py:
+    path("api/bkash/create/",    BkashCreatePaymentView.as_view(), name="bkash-create"),
+    path("api/bkash/callback/",  BkashCallbackView.as_view(),      name="bkash-callback"),
+    path("api/bkash/refund/",    BkashRefundView.as_view(),        name="bkash-refund"),
+"""
+
+import logging
+from django.conf import settings
 from django.shortcuts import redirect
-from django.http import HttpResponse,JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.permissions import (
+    IsAuthenticated,
+    AllowAny,
+    IsAdminUser,
+)
+from rest_framework import status
+
+from .bkash_service import BkashService
+from .models import BkashPayment
+from django.db import transaction
 from order.models import Order
-from product.models import Product
-from .utils import get_sslcommerz_payment_url, verify_sslcommerz_payment
-from .task import send_order_confirmation_email
 
-class InitiatePaymentView(APIView):
+logger = logging.getLogger(__name__)
+bkash = BkashService()
 
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'payment_init'
+
+# ─── 1. Create Payment ───────────────────────────────────────────────────────
+
+class BkashCreatePaymentView(APIView):
+    """
+    POST /api/bkash/create/
+    Body: { "order_id": "123", "amount": "500.00" }
+
+    Returns: { "bkashURL": "...", "payment_id": "..." }
+    React should redirect the user to bkashURL.
+    """
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        order_id = request.data.get('order_id')
+        order_id = request.data.get("order_id")
+        amount   = request.data.get("amount")
+
+        if not order_id or not amount:
+            return Response(
+                {"error": "order_id and amount are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Callback URL – bKash redirects here after the user pays
+        callback_url = request.build_absolute_uri("/api/bkash/callback/")
+
         try:
-            order = Order.objects.get(id=order_id, user=request.user)
+            result = bkash.create_payment(
+                amount=amount,
+                order_id=order_id,
+                callback_url=callback_url,
+            )
+        except Exception as e:
+            logger.error(f"bKash create_payment error: {e}")
+            return Response(
+                {"error": "Failed to initiate bKash payment."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
-            tran_id = f"ORDER_{order.id}_{uuid.uuid4().hex[:6]}"
-            order.tran_id = tran_id
-            order.save()
+        if result.get("statusCode") and result["statusCode"] != "0000":
+            return Response(
+                {"error": result.get("statusMessage", "Payment creation failed.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        # Persist the payment record
+        BkashPayment.objects.create(
+            order_id=order_id,
+            payment_id=result.get("paymentID"),
+            merchant_invoice_no=result.get("merchantInvoiceNumber"),
+            amount=amount,
+            status=BkashPayment.Status.INITIATED,
+            create_response=result,
+        )
 
-            url = get_sslcommerz_payment_url(order, request.user)
-            
-            return Response({'payment_url': url}) if url else Response({'error': 'Failed'}, status=400)
-        except Order.DoesNotExist:
-            return Response({'error': 'Not Found'}, status=404)
-
-@csrf_exempt
-def payment_success(request):
-    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173') # Vite runs on 5173 not 3000
-    if request.method == 'POST':
-        data = request.POST
-        val_id = data.get('val_id')
-        bank_tran_id = data.get('bank_tran_id')
-        card_type = data.get('card_type')
-        tran_id = data.get('tran_id')
-        try:
-            order_id = int(tran_id.split('_')[1])
-        except (IndexError, AttributeError):
-            return redirect(f'{FRONTEND_URL}/payment-fail')
-
-
-        
-        validation_response = verify_sslcommerz_payment(val_id)
-
-        if validation_response:
-
-            if validation_response.get('status') == 'VALID' or validation_response.get('status') == 'AUTHENTICATED':
-                order = Order.objects.select_related('user').get(id=order_id)    
-                order.status = 'Paid'
-                order.tran_id = tran_id
-                order.val_id = val_id
-                order.bank_tran_id = bank_tran_id
-                order.card_type = card_type
-                order.save()
-                
-                return redirect(f'{FRONTEND_URL}/payment-success?id=' + tran_id)
-            else:
-                return JsonResponse({'error': 'Payment validation failed at SSLCommerz!'}, status=400)
-        else:
-            return JsonResponse({'error': 'Failed to connect to validation server!'}, status=500)
-    
-    return redirect(f'{FRONTEND_URL}/payment-fail')
+        return Response({
+            "bkashURL":   result["bkashURL"],
+            "payment_id": result["paymentID"],
+        })
 
 
+# ─── 2. Callback (bKash redirects here after payment) ────────────────────────
 
-@csrf_exempt
-def sslcommerz_ipn(request):
+class BkashCallbackView(APIView):
+    """
+    GET /api/bkash/callback/?paymentID=...&status=success|failure|cancel
 
-    if request.method == 'POST':
-        data = request.POST
-        val_id = data.get('val_id')
-        bank_tran_id = data.get('bank_tran_id')
-        card_type = data.get('card_type')
-        tran_id = data.get('tran_id')
-        amount = data.get('amount')
-        
-        
-        validation_response = verify_sslcommerz_payment(val_id)
+    bKash redirects the user's browser here.
+    This view:
+      - Executes the payment if status == success
+      - Updates the BkashPayment record
+      - Redirects the user to the React frontend success/failure page
+    """
+    permission_classes = [AllowAny]   # bKash redirect – no user session here
 
-        if validation_response and validation_response.get('status') in ['VALID', 'AUTHENTICATED']:
+    FRONTEND_SUCCESS = getattr(settings, "BKASH_SUCCESS_URL", "http://localhost:3000/payment/success")
+    FRONTEND_FAILURE = getattr(settings, "BKASH_FAILURE_URL", "http://localhost:3000/payment/failed")
 
+    def get(self, request):
+        payment_id     = request.GET.get("paymentID")
+        callback_status = request.GET.get("status")
 
-                        
-            
+        with transaction.atomic():
+            record = (
+                BkashPayment.objects
+                .select_for_update()
+                .filter(payment_id=payment_id)
+                .first()
+                )
+
+        # ── User cancelled or payment failed ─────────────────────────────────
+        if callback_status in ("failure", "cancel"):
+            if record:
+                record.status = (
+                    BkashPayment.Status.CANCELLED
+                    if callback_status == "cancel"
+                    else BkashPayment.Status.FAILED
+                )
+                record.save(update_fields=["status", "updated_at"])
+            return redirect(f"{self.FRONTEND_FAILURE}?reason={callback_status}")
+
+        # ── Payment reported success – now execute ────────────────────────────
+        if callback_status == "success":
+
+            if (record and record.status == BkashPayment.Status.SUCCESS):
+                return redirect(
+                        f"{self.FRONTEND_SUCCESS}"
+                        f"?trxID={record.trx_id}"
+                        f"&paymentID={record.payment_id}"
+                        f"&amount={record.amount}"
+                        )
             try:
-                order_id = int(tran_id.split('_')[1])
-                
-                order = Order.objects.select_related('user').get(id=order_id)          
-                
-                
-                if float(amount) >= float(order.total_price):
-                    if order.status != 'Paid': 
-                        order.status = 'Paid'
-                        order.tran_id = tran_id
+                result = bkash.execute_payment(payment_id)
+            except Exception as e:
+                # No response from execute → try query once
+                logger.error(f"bKash execute error, querying: {e}")
+                try:
+                    result = bkash.query_payment(payment_id)
+                except Exception as qe:
+                    logger.error(f"bKash query also failed: {qe}")
+                    if record:
+                        record.status = BkashPayment.Status.FAILED
+                        record.save(update_fields=["status", "updated_at"])
+                    return redirect(self.FRONTEND_FAILURE)
 
-                        order.val_id = val_id
-                        order.bank_tran_id = bank_tran_id
-                        order.card_type = card_type
-                        order.save()
-                    send_order_confirmation_email.delay(
-                        order.id, 
-                        order.user.email, 
-                        order.user.username
-                    )
-                    
-                
-                return HttpResponse("IPN Handled Successfully", status=200)
-            except (Order.DoesNotExist, IndexError):
-                return HttpResponse("Order Not Found", status=404)
+            if result.get("statusCode") and result["statusCode"] != "0000":
+                if record:
+                    record.status           = BkashPayment.Status.SUCCESS
+                    record.trx_id           = result.get("trxID")
+                    record.execute_response = result
+                    record.save(update_fields=["status", "trx_id",
+                                               "execute_response", "updated_at"])
 
-    return HttpResponse("Invalid Request", status=400)
+                # ── TODO: mark your Order as paid here ───────────────────────
+                # Order.objects.filter(id=record.order_id).update(is_paid=True)
+
+                return redirect(
+                    f"{self.FRONTEND_SUCCESS}"
+                    f"?trxID={result.get('trxID')}"
+                    f"&paymentID={payment_id}"
+                    f"&amount={result.get('amount')}"
+                )
+            else:
+                if record:
+                    record.status           = BkashPayment.Status.FAILED
+                    record.execute_response = result
+                    record.save(update_fields=["status", "execute_response", "updated_at"])
+                msg = result.get("statusMessage", "execution_failed")
+                return redirect(f"{self.FRONTEND_FAILURE}?reason={msg}")
+
+        return redirect(self.FRONTEND_FAILURE)
 
 
+# ─── 3. Refund ───────────────────────────────────────────────────────────────
+
+class BkashRefundView(APIView):
+    """
+    POST /api/bkash/refund/
+    Body: { "payment_id": "...", "amount": "100.00", "reason": "Customer request" }
+    Requires staff/admin permission – adjust as needed.
+    """
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        payment_id = request.data.get("payment_id")
+        amount     = request.data.get("amount")
+        reason     = request.data.get("reason", "Refund")
+
+        if not payment_id:
+            return Response(
+                {"error": "payment_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if amount is not None:
+            try:
+                amount = float(amount)
+
+                if amount <= 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return Response(
+                    {"error": "Invalid refund amount."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+    
+
+        record = BkashPayment.objects.filter(
+            payment_id=payment_id,
+            status=BkashPayment.Status.SUCCESS,
+        ).first()
+
+        if not record:
+            return Response(
+                {"error": "No successful payment found for this payment_id."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            result = bkash.refund_transaction(
+                payment_id=payment_id,
+                trx_id=record.trx_id,
+                amount=amount or record.amount,
+                reason=reason,
+            )
+        except Exception as e:
+            logger.error(f"bKash refund error: {e}")
+            return Response(
+                {"error": "Refund request failed."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if result.get("statusCode") == "0000":
+            record.status = BkashPayment.Status.REFUNDED
+            record.save(update_fields=["status", "updated_at"])
+            return Response({"message": "Refund successful.", "data": result})
+
+        return Response(
+            {"error": result.get("statusMessage", "Refund failed.")},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+# ─── 4. Payment Status check (for React polling) ─────────────────────────────
+
+class BkashPaymentStatusView(APIView):
+    """
+    GET /api/bkash/status/<order_id>/
+    React can call this after redirect to confirm final status.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, order_id):
+        record = BkashPayment.objects.filter(order_id=order_id).order_by("-created_at").first()
+        if not record:
+            return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "status":     record.status,
+            "payment_id": record.payment_id,
+            "trx_id":     record.trx_id,
+            "amount":     str(record.amount),
+        })
+    
 
 
 class OrderTransactionSearchView(APIView):
@@ -142,30 +295,3 @@ class OrderTransactionSearchView(APIView):
             
         except Order.DoesNotExist:
             return Response({"error": "No order found with this Transaction ID"}, status=404)
-
-
-
-
-from django.db import transaction
-
-class PaymentFailView(APIView):
-    def post(self, request, order_id):
-        try:
-            with transaction.atomic():
-                order = Order.objects.select_for_update().get(id=order_id)
-
-                for item in order.items.all():
-                    product = Product.objects.select_for_update().get(
-                        id=item.product.id
-                    )
-                    product.stock += item.quantity
-                    product.save()
-
-                order.status = "Failed"
-                order.save()
-
-            return Response({"message": "Stock restored"})
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
-# Create your views here.
