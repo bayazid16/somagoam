@@ -1,4 +1,4 @@
-"""
+
 from django.contrib import admin
 from django.utils import timezone
 from .models import Seller, SellerNotification
@@ -48,4 +48,3 @@ class SellerAdmin(admin.ModelAdmin):
 @admin.register(SellerNotification)
 class SellerNotificationAdmin(admin.ModelAdmin):
     list_display = ['seller', 'title', 'is_read', 'created_at']
-"""
