@@ -4,9 +4,9 @@ from .models import Product
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price','slug', 'category', 'stock', 'display_image','description']
+    list_display = ['name', 'price','slug', 'category', 'stock', 'display_image','description','seller']
     readonly_fields = ['display_image']
-    fields = ['name', 'price', 'slug', 'category', 'stock', 'image', 'display_image','description']
+    fields = ['name', 'price', 'slug', 'category', 'stock', 'image', 'display_image','description','seller']
     prepopulated_fields = {"slug": ("name",)}
 
     def display_image(self, obj):
