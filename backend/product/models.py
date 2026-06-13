@@ -4,12 +4,20 @@ from category.models import Category
 from django.contrib.postgres.search import SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVector
+from sellers.models import Seller
 
 
 
 
 class Product(models.Model):
     category=models.ForeignKey(Category,related_name='products',on_delete=models.CASCADE)
+
+    seller      = models.ForeignKey(
+        Seller,               
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='products',           
+    )
     name=models.CharField(max_length=255) #for search
     slug=models.SlugField(max_length=255,unique=True,db_index=True) #it has auto index
     description=models.TextField(blank=True)
@@ -51,6 +59,7 @@ class Product(models.Model):
             models.Index(fields=['price']),
             models.Index(fields=['slug']),
             models.Index(fields=['-created_at']), 
+            models.Index(fields=['seller']),
             GinIndex(fields=['search_vector']), #for full text search
         ]
 

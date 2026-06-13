@@ -5,6 +5,11 @@ from .views import (
     SellerStatsView, SellerListView, SellerDetailView,
     SellerNotificationsView,
 )
+from .product_views import (
+    SellerProductListView,
+    SellerAddProductView,
+    SellerMyProductsView,
+)
  
 urlpatterns = [
     # Auth — completely separate from /api/auth/
@@ -22,4 +27,12 @@ urlpatterns = [
     # Public (for Producers page)
     path('',               SellerListView.as_view(),         name='sellers-list'),
     path('<slug:slug>/',   SellerDetailView.as_view(),       name='seller-detail'),
+
+     # Public
+    path('<slug:slug>/products/', SellerProductListView.as_view(), name='seller-products'),
+ 
+    # Private (seller dashboard)
+    path('products/',             SellerMyProductsView.as_view(),  name='seller-my-products'),
+    path('products/add/',         SellerAddProductView.as_view(),  name='seller-add-product'),
+    path('products/<int:product_id>/', SellerMyProductsView.as_view(), name='seller-delete-product'),
 ]
