@@ -8,6 +8,8 @@ URL patterns to add in urls.py:
 """
 
 import logging
+from decimal import Decimal, InvalidOperation
+
 from django.conf import settings
 from django.shortcuts import redirect
 from rest_framework.views import APIView
@@ -33,24 +35,42 @@ bkash = BkashService()
 class BkashCreatePaymentView(APIView):
     """
     POST /api/bkash/create/
-    Body: { "order_id": "123", "amount": "500.00" }
+    Body: { "order_id": "123" }
+
+    Amount is intentionally NOT accepted from the client — it's read from
+    the Order record itself, so a user can never pay less (or for someone
+    else's order) than what's actually owed.
 
     Returns: { "bkashURL": "...", "payment_id": "..." }
-    React should redirect the user to bkashURL.
     """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         order_id = request.data.get("order_id")
-        amount   = request.data.get("amount")
 
-        if not order_id or not amount:
+        if not order_id:
             return Response(
-                {"error": "order_id and amount are required."},
+                {"error": "order_id is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Callback URL – bKash redirects here after the user pays
+        try:
+            order = Order.objects.get(id=order_id, user=request.user)
+        except Order.DoesNotExist:
+            return Response(
+                {"error": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Adjust this to whatever field/logic marks your Order as already paid
+        if getattr(order, "is_paid", False):
+            return Response(
+                {"error": "This order has already been paid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        amount = order.total_price  # server-side truth, never client input
+
         callback_url = request.build_absolute_uri("/api/bkash/callback/")
 
         try:
@@ -66,13 +86,9 @@ class BkashCreatePaymentView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        if result.get("statusCode") and result["statusCode"] != "0000":
-            return Response(
-                {"error": result.get("statusMessage", "Payment creation failed.")},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # NOTE: create_payment() already raises on any statusCode != "0000",
+        # so if we reach here the call succeeded — no need to re-check it.
 
-        # Persist the payment record
         BkashPayment.objects.create(
             order_id=order_id,
             payment_id=result.get("paymentID"),
@@ -94,54 +110,62 @@ class BkashCallbackView(APIView):
     """
     GET /api/bkash/callback/?paymentID=...&status=success|failure|cancel
 
-    bKash redirects the user's browser here.
-    This view:
-      - Executes the payment if status == success
-      - Updates the BkashPayment record
-      - Redirects the user to the React frontend success/failure page
+    Never trust the `status` query param alone for a "success" outcome —
+    it only tells us the user finished the bKash flow. We always confirm
+    with execute_payment / query_payment server-to-server before marking
+    anything as SUCCESS.
     """
-    permission_classes = [AllowAny]   # bKash redirect – no user session here
+    permission_classes = [AllowAny]
 
     FRONTEND_SUCCESS = getattr(settings, "BKASH_SUCCESS_URL", "http://localhost:3000/payment/success")
     FRONTEND_FAILURE = getattr(settings, "BKASH_FAILURE_URL", "http://localhost:3000/payment/failed")
 
     def get(self, request):
-        payment_id     = request.GET.get("paymentID")
+        payment_id      = request.GET.get("paymentID")
         callback_status = request.GET.get("status")
 
+        if not payment_id:
+            return redirect(self.FRONTEND_FAILURE)
+
+        # Entire read-check-update flow stays inside ONE atomic block so the
+        # row lock from select_for_update() is actually held while we act on it.
         with transaction.atomic():
             record = (
                 BkashPayment.objects
                 .select_for_update()
                 .filter(payment_id=payment_id)
                 .first()
-                )
+            )
 
-        # ── User cancelled or payment failed ─────────────────────────────────
-        if callback_status in ("failure", "cancel"):
-            if record:
-                record.status = (
-                    BkashPayment.Status.CANCELLED
-                    if callback_status == "cancel"
-                    else BkashPayment.Status.FAILED
-                )
-                record.save(update_fields=["status", "updated_at"])
-            return redirect(f"{self.FRONTEND_FAILURE}?reason={callback_status}")
+            # ── User cancelled or bKash reported failure ──────────────────
+            if callback_status in ("failure", "cancel"):
+                if record and record.status not in (
+                    BkashPayment.Status.SUCCESS, BkashPayment.Status.REFUNDED
+                ):
+                    record.status = (
+                        BkashPayment.Status.CANCELLED
+                        if callback_status == "cancel"
+                        else BkashPayment.Status.FAILED
+                    )
+                    record.save(update_fields=["status", "updated_at"])
+                return redirect(f"{self.FRONTEND_FAILURE}?reason={callback_status}")
 
-        # ── Payment reported success – now execute ────────────────────────────
-        if callback_status == "success":
+            if callback_status != "success":
+                return redirect(self.FRONTEND_FAILURE)
 
-            if (record and record.status == BkashPayment.Status.SUCCESS):
+            # ── Already processed — idempotent on bKash retrying the callback ──
+            if record and record.status == BkashPayment.Status.SUCCESS:
                 return redirect(
-                        f"{self.FRONTEND_SUCCESS}"
-                        f"?trxID={record.trx_id}"
-                        f"&paymentID={record.payment_id}"
-                        f"&amount={record.amount}"
-                        )
+                    f"{self.FRONTEND_SUCCESS}"
+                    f"?trxID={record.trx_id}"
+                    f"&paymentID={record.payment_id}"
+                    f"&amount={record.amount}"
+                )
+
+            # ── Verify with bKash server-to-server ─────────────────────────
             try:
                 result = bkash.execute_payment(payment_id)
             except Exception as e:
-                # No response from execute → try query once
                 logger.error(f"bKash execute error, querying: {e}")
                 try:
                     result = bkash.query_payment(payment_id)
@@ -150,34 +174,26 @@ class BkashCallbackView(APIView):
                     if record:
                         record.status = BkashPayment.Status.FAILED
                         record.save(update_fields=["status", "updated_at"])
-                    return redirect(self.FRONTEND_FAILURE)
+                    return redirect(f"{self.FRONTEND_FAILURE}?reason=verification_failed")
 
-            if result.get("statusCode") and result["statusCode"] != "0000":
-                if record:
-                    record.status           = BkashPayment.Status.SUCCESS
-                    record.trx_id           = result.get("trxID")
-                    record.execute_response = result
-                    record.save(update_fields=["status", "trx_id",
-                                               "execute_response", "updated_at"])
+            # Both execute_payment() and query_payment() raise on anything
+            # other than statusCode "0000" — reaching this line means the
+            # payment is genuinely confirmed successful.
+            if record:
+                record.status           = BkashPayment.Status.SUCCESS
+                record.trx_id           = result.get("trxID")
+                record.execute_response = result
+                record.save(update_fields=["status", "trx_id", "execute_response", "updated_at"])
 
-                # ── TODO: mark your Order as paid here ───────────────────────
-                # Order.objects.filter(id=record.order_id).update(is_paid=True)
+                # Adjust field name to match your Order model
+                Order.objects.filter(id=record.order_id).update(is_paid=True)
 
-                return redirect(
-                    f"{self.FRONTEND_SUCCESS}"
-                    f"?trxID={result.get('trxID')}"
-                    f"&paymentID={payment_id}"
-                    f"&amount={result.get('amount')}"
-                )
-            else:
-                if record:
-                    record.status           = BkashPayment.Status.FAILED
-                    record.execute_response = result
-                    record.save(update_fields=["status", "execute_response", "updated_at"])
-                msg = result.get("statusMessage", "execution_failed")
-                return redirect(f"{self.FRONTEND_FAILURE}?reason={msg}")
-
-        return redirect(self.FRONTEND_FAILURE)
+            return redirect(
+                f"{self.FRONTEND_SUCCESS}"
+                f"?trxID={result.get('trxID')}"
+                f"&paymentID={payment_id}"
+                f"&amount={result.get('amount')}"
+            )
 
 
 # ─── 3. Refund ───────────────────────────────────────────────────────────────
@@ -186,34 +202,31 @@ class BkashRefundView(APIView):
     """
     POST /api/bkash/refund/
     Body: { "payment_id": "...", "amount": "100.00", "reason": "Customer request" }
-    Requires staff/admin permission – adjust as needed.
     """
     permission_classes = [IsAdminUser]
 
     def post(self, request):
         payment_id = request.data.get("payment_id")
-        amount     = request.data.get("amount")
+        raw_amount = request.data.get("amount")
         reason     = request.data.get("reason", "Refund")
 
         if not payment_id:
             return Response(
                 {"error": "payment_id is required."},
                 status=status.HTTP_400_BAD_REQUEST,
-                )
+            )
 
-        if amount is not None:
+        amount = None
+        if raw_amount is not None:
             try:
-                amount = float(amount)
-
+                amount = Decimal(str(raw_amount))
                 if amount <= 0:
-                    raise ValueError
-            except (TypeError, ValueError):
+                    raise InvalidOperation
+            except (TypeError, InvalidOperation):
                 return Response(
                     {"error": "Invalid refund amount."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-    
 
         record = BkashPayment.objects.filter(
             payment_id=payment_id,
@@ -226,11 +239,18 @@ class BkashRefundView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        refund_amount = amount or record.amount
+        if refund_amount > record.amount:
+            return Response(
+                {"error": "Refund amount cannot exceed the original payment amount."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             result = bkash.refund_transaction(
                 payment_id=payment_id,
                 trx_id=record.trx_id,
-                amount=amount or record.amount,
+                amount=refund_amount,
                 reason=reason,
             )
         except Exception as e:
@@ -240,15 +260,9 @@ class BkashRefundView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        if result.get("statusCode") == "0000":
-            record.status = BkashPayment.Status.REFUNDED
-            record.save(update_fields=["status", "updated_at"])
-            return Response({"message": "Refund successful.", "data": result})
-
-        return Response(
-            {"error": result.get("statusMessage", "Refund failed.")},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        record.status = BkashPayment.Status.REFUNDED
+        record.save(update_fields=["status", "updated_at"])
+        return Response({"message": "Refund successful.", "data": result})
 
 
 # ─── 4. Payment Status check (for React polling) ─────────────────────────────
@@ -256,7 +270,6 @@ class BkashRefundView(APIView):
 class BkashPaymentStatusView(APIView):
     """
     GET /api/bkash/status/<order_id>/
-    React can call this after redirect to confirm final status.
     """
     permission_classes = [IsAuthenticated]
 
@@ -271,18 +284,16 @@ class BkashPaymentStatusView(APIView):
             "trx_id":     record.trx_id,
             "amount":     str(record.amount),
         })
-    
 
 
 class OrderTransactionSearchView(APIView):
-    
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, tran_id):
         try:
-        
             order = Order.objects.get(tran_id=tran_id, user=request.user)
-            
+
             data = {
                 "order_id": order.id,
                 "amount": order.total_price,
@@ -292,6 +303,6 @@ class OrderTransactionSearchView(APIView):
                 "transaction_id": order.tran_id
             }
             return Response(data, status=200)
-            
+
         except Order.DoesNotExist:
             return Response({"error": "No order found with this Transaction ID"}, status=404)
