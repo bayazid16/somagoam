@@ -161,6 +161,11 @@ class BkashCallbackView(APIView):
                     f"&paymentID={record.payment_id}"
                     f"&amount={record.amount}"
                 )
+            
+            if not record:
+                logger.error(f"bKash callback: no local record for paymentID={payment_id}")
+                return redirect(f"{self.FRONTEND_FAILURE}?reason=unknown_payment")
+
 
             # ── Verify with bKash server-to-server ─────────────────────────
             try:
