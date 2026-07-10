@@ -1,5 +1,5 @@
 """
-views.py  –  bKash payment views (DRF-based).
+views.py   bKash payment views (DRF-based).
 
 URL patterns to add in urls.py:
     path("api/bkash/create/",    BkashCreatePaymentView.as_view(), name="bkash-create"),
