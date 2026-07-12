@@ -117,8 +117,8 @@ class BkashCallbackView(APIView):
     """
     permission_classes = [AllowAny]
 
-    FRONTEND_SUCCESS = getattr(settings, "BKASH_SUCCESS_URL", "http://localhost:3000/payment/success")
-    FRONTEND_FAILURE = getattr(settings, "BKASH_FAILURE_URL", "http://localhost:3000/payment/failed")
+    FRONTEND_SUCCESS = getattr(settings, "BKASH_SUCCESS_URL", "http://somagoam.com/payment/success")
+    FRONTEND_FAILURE = getattr(settings, "BKASH_FAILURE_URL", "http://somagoam.com/payment/failed")
 
     def get(self, request):
         payment_id      = request.GET.get("paymentID")
