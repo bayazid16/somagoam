@@ -566,8 +566,8 @@ BKASH_USERNAME   = "sandboxTokenizedUser02"
 BKASH_PASSWORD   = "sandboxTokenizedUser02@12345"
  
 # ── Redirect URLs (your React app) ─────────────────────────────────────────
-BKASH_SUCCESS_URL = "http://127.0.0.1:8000/payment/success"
-BKASH_FAILURE_URL = "https://yoursite.com/payment/failed"
+BKASH_SUCCESS_URL = "http://somagoam.com/payment/success"
+BKASH_FAILURE_URL = "https://somagoam.com/payment/failed"
  
 
 
