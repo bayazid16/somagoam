@@ -8,7 +8,27 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.permissions import BasePermission
 from .models import Seller
+
+
+
+
+
+
+class IsSeller(BasePermission):
+    """
+    Grants access only when SellerJWTAuthentication has successfully
+    attached a Seller to the request. Independent of Django's User
+    auth entirely — doesn't rely on request.user at all.
+    """
+    message = "A valid seller token is required."
+
+    def has_permission(self, request, view):
+        return bool(getattr(request, 'seller', None))
+
+
+
 
 
 class SellerJWTAuthentication(BaseAuthentication):

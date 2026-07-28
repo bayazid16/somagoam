@@ -21,7 +21,7 @@ from .serializers import (
     SellerDashboardSerializer,
     get_seller_tokens,
 )
-from .authentication import SellerJWTAuthentication
+from .authentication import SellerJWTAuthentication,IsSeller
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +112,7 @@ class SellerTokenRefreshView(APIView):
 class SellerMeView(APIView):
     """GET /api/seller/me/"""
     authentication_classes = [SellerJWTAuthentication]
+    permission_classes     = [IsSeller] 
 
     def get(self, request):
         return Response(SellerDashboardSerializer(request.seller).data)
@@ -125,6 +126,7 @@ class SellerDashboardView(APIView):
     PUT  /api/seller/dashboard/   → update own profile
     """
     authentication_classes = [SellerJWTAuthentication]
+    permission_classes     = [IsSeller] 
 
     def get(self, request):
         return Response(SellerDashboardSerializer(request.seller).data)
@@ -145,6 +147,7 @@ class SellerDashboardView(APIView):
 class SellerUploadView(APIView):
     """POST /api/seller/upload/"""
     authentication_classes = [SellerJWTAuthentication]
+    permission_classes     = [IsSeller] 
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
@@ -173,6 +176,7 @@ class SellerUploadView(APIView):
 class SellerStatsView(APIView):
     """GET /api/seller/stats/"""
     authentication_classes = [SellerJWTAuthentication]
+    permission_classes     = [IsSeller] 
 
     def get(self, request):
         seller = request.seller
@@ -239,6 +243,7 @@ class SellerDetailView(APIView):
 class SellerNotificationsView(APIView):
     """GET /api/seller/notifications/"""
     authentication_classes = [SellerJWTAuthentication]
+    permission_classes     = [IsSeller] 
 
     def get(self, request):
         notes = SellerNotification.objects.filter(seller=request.seller)[:20]
