@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from django.core.cache import cache
  
 from .authentication import SellerJWTAuthentication,IsSeller
 from .models import Seller
@@ -187,6 +188,7 @@ class SellerMyProductsView(APIView):
             seller=request.seller
         ).count()
         request.seller.save(update_fields=['total_products'])
+        cache.clear()
  
         return Response({"message": "Product deleted."})
  
