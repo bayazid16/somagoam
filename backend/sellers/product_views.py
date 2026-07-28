@@ -6,7 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.permissions import AllowAny
  
-from .authentication import SellerJWTAuthentication
+from .authentication import SellerJWTAuthentication,IsSeller
 from .models import Seller
  
  
@@ -76,6 +76,7 @@ class SellerAddProductView(APIView):
     Requires seller JWT token (Authorization: Bearer <seller_access_token>)
     """
     authentication_classes = [SellerJWTAuthentication]
+    permission_classes     = [IsSeller] 
     parser_classes         = [MultiPartParser, FormParser]
  
     def post(self, request):
@@ -153,6 +154,7 @@ class SellerMyProductsView(APIView):
     DELETE /api/seller/products/<id>/  → delete a product
     """
     authentication_classes = [SellerJWTAuthentication]
+    permission_classes     = [IsSeller] 
  
     def get(self, request):
         from product.models import Product
