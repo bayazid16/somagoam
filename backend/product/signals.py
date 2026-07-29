@@ -7,8 +7,12 @@ from django.db.models import Avg, Count
 
 @receiver([post_save, post_delete], sender=Product)
 def clear_product_cache(sender, instance, **kwargs):
-    
-    cache.delete_pattern('product_list_*')
+
+    try:
+        cache.delete_pattern('product_list_*') 
+        cache.delete_pattern('product_detail_*')  
+    except AttributeError:
+        cache.clear() 
 
 
 
