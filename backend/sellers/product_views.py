@@ -1,17 +1,24 @@
 import os
+from xml.parsers.expat import errors
 from django.utils.text import slugify
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+
 from django.core.cache import cache
  
 from .authentication import SellerJWTAuthentication,IsSeller
 from .models import Seller
+
+from product.models import Product,ProductImage
+from product.serializers import ProductSerializer
+from category.models import Category
+                                                        
  
- 
-# ─── 1. Public: Get all products by a seller slug ─────────────────────────────
+#1. Public: Get all products by a seller slug
  
 class SellerProductListView(APIView):
     """
@@ -21,10 +28,7 @@ class SellerProductListView(APIView):
     permission_classes = [AllowAny]
  
     def get(self, request, slug):
-        from sellers.models import Seller
-        from product.models import Product
-        from product.serializers import ProductSerializer
- 
+        
         try:
             seller = Seller.objects.get(
                 slug=slug, status=Seller.Status.APPROVED, is_active=True
@@ -68,7 +72,7 @@ class SellerProductListView(APIView):
         })
  
  
-# ─── 2. Private: Seller posts a new product ───────────────────────────────────
+# 2. Private: Seller posts a new product
  
 class SellerAddProductView(APIView):
     """
@@ -90,8 +94,8 @@ class SellerAddProductView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
  
-        from product.models import Product
-        from category.models import Category
+        
+        
  
         # Required fields
         name        = request.data.get('name', '').strip()
@@ -99,14 +103,18 @@ class SellerAddProductView(APIView):
         category_id = request.data.get('category')
         description = request.data.get('description', '')
         stock       = request.data.get('stock', 0)
-        image       = request.FILES.get('image')
+        images       = request.FILES.getlist('images')
  
         # Validation
         errors = {}
         if not name:        errors['name']     = 'Product name is required.'
         if not price:       errors['price']    = 'Price is required.'
         if not category_id: errors['category'] = 'Category is required.'
-        if not image:       errors['image']    = 'Product image is required.'
+        if not images:       errors['image']    = 'Product image is required.'
+        if not images:
+            errors['images'] = 'At least one product image is required.'
+        elif len(images) > 4:
+            errors['images'] = 'You can upload a maximum of 4 images.'
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
  
@@ -132,9 +140,12 @@ class SellerAddProductView(APIView):
             description = description,
             price       = price,
             stock       = stock,
-            image       = image,
+            image       = images[0],
             is_available = True,
         )
+
+        for i, img in enumerate(images):
+            ProductImage.objects.create(product=product, image=img, order=i)
  
         # Update seller stats
         seller.total_products = Product.objects.filter(seller=seller).count()
@@ -147,7 +158,7 @@ class SellerAddProductView(APIView):
         )
  
  
-# ─── 3. Private: Seller's own product list ────────────────────────────────────
+#3. Private: Seller's own product list
  
 class SellerMyProductsView(APIView):
     """
@@ -158,8 +169,8 @@ class SellerMyProductsView(APIView):
     permission_classes     = [IsSeller] 
  
     def get(self, request):
-        from product.models import Product
-        from product.serializers import ProductSerializer
+        
+        
  
         products = Product.objects.filter(
             seller=request.seller
