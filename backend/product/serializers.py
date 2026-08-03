@@ -1,6 +1,6 @@
 from rest_framework.fields import ReadOnlyField
 from rest_framework import serializers
-from .models import Product,Category
+from .models import Product,Category,ProductImage
 from reviews.serializers import ReviewSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,6 +22,12 @@ class SellerMiniSerializer(serializers.Serializer):
     total_products = serializers.IntegerField()
     total_sales    = serializers.IntegerField()
  
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image', 'order']
+
+
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name=serializers.ReadOnlyField(source='category.name')
@@ -33,11 +39,11 @@ class ProductSerializer(serializers.ModelSerializer):
     seller_slug = serializers.CharField(
         source='seller.slug', read_only=True, default=None
     )
+    
  
     class Meta:
         model=Product
         fields=['id','name','price','category','category_name','slug','image','description','seller_name','seller_slug','stock','average_rating']
-
 
 
 
@@ -48,12 +54,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
      # Full seller card info
     seller = serializers.SerializerMethodField()
-
+    images = ProductImageSerializer(many=True, read_only=True)
+     
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'slug', 'description', 'price', 
-            'stock', 'image', 'category_name', 'average_rating', 'reviews','seller'
+            'stock', 'image', 'category_name', 'average_rating', 'reviews','seller','images'
         ]
 
     def get_seller(self, obj):

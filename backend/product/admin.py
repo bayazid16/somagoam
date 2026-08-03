@@ -1,6 +1,13 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Product
+from .models import Product,ProductImage
+
+
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1
+
+
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -8,6 +15,7 @@ class ProductAdmin(admin.ModelAdmin):
     readonly_fields = ['display_image']
     fields = ['name', 'price', 'slug', 'category', 'stock', 'image', 'display_image','description','seller']
     prepopulated_fields = {"slug": ("name",)}
+    inlines = [ProductImageInline]
 
     def display_image(self, obj):
         if obj.image and hasattr(obj.image, 'url'):
@@ -15,5 +23,9 @@ class ProductAdmin(admin.ModelAdmin):
         return "No Image"
     
     display_image.short_description = 'Preview'
+
+
+
+
 
 # Register your models here.
